@@ -26,7 +26,7 @@ func TestResolveSchematicsName(t *testing.T) {
 		{input: "__name2@dasherize__.component.html.template", wanted: "duffy-duck.component.html.template"},
 	}
 
-	props := map[string]string{
+	props := map[string]interface{}{
 		"name":  "pippo",
 		"name2": "duffyDuck",
 	}

@@ -2,10 +2,10 @@ package schematics_test
 
 import (
 	"fmt"
+	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-schematics/schematics"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
-	"tpm-schematics/schematics"
 )
 
 type InputWanted struct {

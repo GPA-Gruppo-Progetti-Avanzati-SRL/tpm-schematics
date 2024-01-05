@@ -46,6 +46,7 @@ func TestGetSource(t *testing.T) {
 		schematics.SourceWithMetadata(metadata),
 	)
 	require.NoError(t, err)
+
 }
 
 func TestApply(t *testing.T) {

@@ -1,0 +1,1 @@
+template: schematics/example-templates/file1.md.template

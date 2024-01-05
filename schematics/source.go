@@ -79,6 +79,15 @@ type SourceTemplate struct {
 	templates []templateutil.Info
 }
 
+func (st *SourceTemplate) TemplateNames() []string {
+	var sarr []string
+	for _, t := range st.templates {
+		sarr = append(sarr, t.Name)
+	}
+
+	return sarr
+}
+
 type OpNode struct {
 	path    string
 	content []byte
@@ -135,7 +144,11 @@ func GetSource(templates embed.FS, embedRootFolder string, opts ...SourceTemplat
 		return nil, err
 	}
 
-	ctx := SourceContext{Name: cfg.metadata["name"].(string), ProducedAt: time.Now(), Model: cfg.model, Metadata: cfg.metadata}
+	for _, n := range nodes {
+		log.Info().Str("path", n.path).Interface("tmpls", n.TemplateNames()).Msg(semLogContext)
+	}
+
+	ctx := SourceContext{Name: cfg.metadata["Name"].(string), ProducedAt: time.Now(), Model: cfg.model, Metadata: cfg.metadata}
 
 	source, err := processSourceTemplates(&ctx, cfg.funcMap, nodes, cfg.formatCode)
 	if err != nil {
@@ -188,18 +201,18 @@ func readSourceTemplates(cfg *SourceTemplateOptions, templates embed.FS, rootFol
 
 		fn := e.Info.Name()
 		var baseFn string
-		if strings.HasSuffix(fn, ".template") {
-			fn = strings.TrimSuffix(fn, ".template")
+		if strings.HasSuffix(fn, ".tmpl") {
+			fn = strings.TrimSuffix(fn, ".tmpl")
 			baseFn = fn
 		} else {
-			if strings.HasSuffix(fn, ".child-template") {
-				fn = strings.TrimSuffix(fn, ".child-template")
+			if strings.HasSuffix(fn, ".child-tmpl") {
+				fn = strings.TrimSuffix(fn, ".child-tmpl")
 				ext := filepath.Ext(fn)
 				if ext != "" {
 					baseFn = strings.TrimSuffix(fn, ext)
 				}
 			} else {
-				continue
+				baseFn = fn
 			}
 		}
 
@@ -208,7 +221,7 @@ func readSourceTemplates(cfg *SourceTemplateOptions, templates embed.FS, rootFol
 			fulln = filepath.Join(e.Path, baseFn)
 		}
 
-		if ndx, ok := treeNodeMap[baseFn]; ok {
+		if ndx, ok := treeNodeMap[fulln]; ok {
 			treeNodes[ndx].path = fulln
 			treeNodes[ndx].templates = append(treeNodes[ndx].templates, templateutil.Info{Name: fn, Content: string(e.Content)})
 		} else {
@@ -221,7 +234,7 @@ func readSourceTemplates(cfg *SourceTemplateOptions, templates embed.FS, rootFol
 					},
 				},
 			})
-			treeNodeMap[baseFn] = len(treeNodes) - 1
+			treeNodeMap[fulln] = len(treeNodes) - 1
 		}
 	}
 

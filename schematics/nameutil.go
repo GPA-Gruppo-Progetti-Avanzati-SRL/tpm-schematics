@@ -15,7 +15,7 @@ const (
 	NameFormattingUnderscore = "@underscore"
 )
 
-var schematicsNameRegexp = regexp.MustCompile(`__([a-zA-Z0-9\-]+)(@dasherize|@classify|@camelize|@decamelize|@underscore)?__`)
+var schematicsNameRegexp = regexp.MustCompile(`e\(__([a-zA-Z0-9\-]+)(@dasherize|@classify|@camelize|@decamelize|@underscore)?__\)`)
 
 func ResolveSchematicsName(fn string, props map[string]interface{}) (string, error) {
 	matches := schematicsNameRegexp.FindAllSubmatch([]byte(fn), -1)

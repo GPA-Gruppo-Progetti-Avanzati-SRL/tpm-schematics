@@ -1,0 +1,1 @@
+template: schematics/example-templates/__name@dasherize__.java.template

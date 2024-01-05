@@ -22,8 +22,8 @@ func TestResolveSchematicsName(t *testing.T) {
 
 	// Decamelize
 	s = []InputWanted{
-		{input: "__name@dasherize__.component.html.template", wanted: "pippo.component.html.template"},
-		{input: "__name2@dasherize__.component.html.template", wanted: "duffy-duck.component.html.template"},
+		{input: "e(__name@dasherize__).component.html.template", wanted: "pippo.component.html.template"},
+		{input: "e(__name2@dasherize__).component.html.template", wanted: "duffy-duck.component.html.template"},
 	}
 
 	props := map[string]interface{}{

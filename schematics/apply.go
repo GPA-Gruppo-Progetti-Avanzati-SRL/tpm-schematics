@@ -91,6 +91,8 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 				// files are different. check if the patch file has to be produced.
 				if cfg.produceDiff {
 					mergedFiles = append(mergedFiles, pf)
+				} else {
+					log.Info().Msg(semLogContext + " actual patch creation not enabled")
 				}
 
 				bck, err := createBackupFile(targetPath)
@@ -112,6 +114,8 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 				// files are different. check if the patch file has to be produced.
 				if cfg.produceDiff {
 					mergedFiles = append(mergedFiles, pf)
+				} else {
+					log.Info().Msg(semLogContext + " actual patch creation not enabled")
 				}
 
 				newf, err := createNewFile(targetPath, f.content)

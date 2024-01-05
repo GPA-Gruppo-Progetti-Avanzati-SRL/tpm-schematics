@@ -1,0 +1,4 @@
+template: schematics/example-templates/__name@dasherize__/nested-file.txt.template
+{{ classify .Name }}
+{{ .Model.name }}
+Boffa

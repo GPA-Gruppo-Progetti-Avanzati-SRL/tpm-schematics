@@ -39,23 +39,22 @@ func RecoverRegions(fromContent []byte, toContent []byte) ([]byte, error) {
 		return toContent, nil
 	}
 
-	reader := bufio.NewReader(bytes.NewReader(toContent))
+	scanner := bufio.NewScanner(bytes.NewReader(toContent))
 
 	var sb strings.Builder
-	l, err := reader.ReadString('\n')
-	for err == nil {
+	for scanner.Scan() {
+		l := scanner.Text()
 		sb.WriteString(l)
+		sb.WriteString("\n")
 		regType, regionName, ok := getRegionDemarcation(l)
 		if ok && regType == "start-region" {
 			if data, ok := regs[regionName]; ok {
 				sb.WriteString(data)
 			}
 		}
-
-		l, err = reader.ReadString('\n')
 	}
 
-	if err != nil && err != io.EOF {
+	if err := scanner.Err(); err != nil && err != io.EOF {
 		log.Error().Err(err).Msg(semLogContext)
 		return nil, err
 	}
@@ -65,7 +64,7 @@ func RecoverRegions(fromContent []byte, toContent []byte) ([]byte, error) {
 
 func ReadRegionsFromBuffer(p []byte) (map[string]string, error) {
 	const semLogContext = "schematics::read-regions-from-buffer"
-	reader := bufio.NewReader(bytes.NewReader(p))
+	scanner := bufio.NewScanner(bytes.NewReader(p))
 
 	var m map[string]string
 
@@ -76,8 +75,10 @@ func ReadRegionsFromBuffer(p []byte) (map[string]string, error) {
 	var currentRegionSize int
 	var sb strings.Builder
 	var lineno int
-	l, err := reader.ReadString('\n')
-	for err == nil {
+	var err error
+	for scanner.Scan() {
+		l := scanner.Text()
+
 		lineno++
 		demarcationType, aName, ok := getRegionDemarcation(l)
 		switch s {
@@ -111,15 +112,15 @@ func ReadRegionsFromBuffer(p []byte) (map[string]string, error) {
 				s = OutOfRegion
 			} else {
 				sb.WriteString(l)
+				sb.WriteString("\n")
 				currentRegionSize++
 			}
 		default:
 		}
 
-		l, err = reader.ReadString('\n')
 	}
 
-	if err != nil && err != io.EOF {
+	if err := scanner.Err(); err != nil && err != io.EOF {
 		log.Error().Err(err).Int("line", lineno).Msg(semLogContext)
 		return nil, err
 	}

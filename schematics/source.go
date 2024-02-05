@@ -148,7 +148,14 @@ func GetSource(templates embed.FS, embedRootFolder string, opts ...SourceTemplat
 		log.Info().Str("path", n.path).Interface("tmpls", n.TemplateNames()).Msg(semLogContext)
 	}
 
-	ctx := SourceContext{Name: cfg.metadata["name"].(string), ProducedAt: time.Now(), Model: cfg.model, Metadata: cfg.metadata}
+	n, ok := cfg.metadata["name"]
+	if !ok {
+		n, ok = cfg.metadata["Name"]
+	}
+	if !ok {
+		n = "n.a."
+	}
+	ctx := SourceContext{Name: n.(string), ProducedAt: time.Now(), Model: cfg.model, Metadata: cfg.metadata}
 
 	source, err := processSourceTemplates(&ctx, cfg.funcMap, nodes, cfg.formatCode)
 	if err != nil {

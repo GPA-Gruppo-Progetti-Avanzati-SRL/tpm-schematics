@@ -65,6 +65,15 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 	var mergedFiles []OpNode
 	for _, f := range files {
 		targetPath := filepath.Join(targetFolder, f.path)
+		if util.FileExists(targetPath) {
+			b, err := RecoverRegionsOfFile(targetPath, f.content)
+			if err != nil {
+				log.Error().Err(err).Msg(semLogContext)
+				return err
+			}
+			f.content = b
+		}
+
 		cm, err := computeConflictMode(&cfg, targetPath)
 		if err != nil {
 			log.Error().Err(err).Msg(semLogContext)

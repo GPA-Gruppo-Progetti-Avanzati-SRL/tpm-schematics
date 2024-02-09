@@ -79,6 +79,14 @@ type SourceTemplate struct {
 	templates []templateutil.Info
 }
 
+func (st *SourceTemplate) IsGoLanguage() bool {
+	if filepath.Ext(st.path) == ".go" {
+		return true
+	}
+
+	return false
+}
+
 func (st *SourceTemplate) TemplateNames() []string {
 	var sarr []string
 	for _, t := range st.templates {
@@ -109,6 +117,9 @@ func (s *SourceTemplate) processTemplates(genCtx *SourceContext, funcMap templat
 		return out, err
 	}
 
+	if !s.IsGoLanguage() {
+		formatCode = false
+	}
 	var parsedTemplate *template.Template
 	if parsedTemplate, err = templateutil.Parse(s.templates, funcMap); err != nil {
 		log.Error().Err(err).Msg(semLogContext)
@@ -207,6 +218,7 @@ func readSourceTemplates(cfg *SourceTemplateOptions, templates embed.FS, rootFol
 		}
 
 		fn := e.Info.Name()
+		isMain := true
 		var baseFn string
 		if strings.HasSuffix(fn, ".tmpl") {
 			fn = strings.TrimSuffix(fn, ".tmpl")
@@ -218,6 +230,7 @@ func readSourceTemplates(cfg *SourceTemplateOptions, templates embed.FS, rootFol
 				if ext != "" {
 					baseFn = strings.TrimSuffix(fn, ext)
 				}
+				isMain = false
 			} else {
 				baseFn = fn
 			}
@@ -230,7 +243,13 @@ func readSourceTemplates(cfg *SourceTemplateOptions, templates embed.FS, rootFol
 
 		if ndx, ok := treeNodeMap[fulln]; ok {
 			treeNodes[ndx].path = fulln
-			treeNodes[ndx].templates = append(treeNodes[ndx].templates, templateutil.Info{Name: fn, Content: string(e.Content)})
+			if isMain {
+				// the main array has to be set to as the first template.
+				// append as the first element
+				treeNodes[ndx].templates = append([]templateutil.Info{{Name: fn, Content: string(e.Content)}}, treeNodes[ndx].templates...)
+			} else {
+				treeNodes[ndx].templates = append(treeNodes[ndx].templates, templateutil.Info{Name: fn, Content: string(e.Content)})
+			}
 		} else {
 			treeNodes = append(treeNodes, SourceTemplate{
 				path: fulln,

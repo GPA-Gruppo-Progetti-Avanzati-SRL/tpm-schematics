@@ -105,6 +105,13 @@ func (s *OpNode) IsZero() bool {
 	return s.path == "" && s.content == nil
 }
 
+func NewOpNode(p string, data []byte) OpNode {
+	return OpNode{
+		path:    p,
+		content: data,
+	}
+}
+
 func (s *SourceTemplate) processTemplates(genCtx *SourceContext, funcMap template.FuncMap, formatCode bool) (OpNode, error) {
 	const semLogContext = "schematics::process-template"
 

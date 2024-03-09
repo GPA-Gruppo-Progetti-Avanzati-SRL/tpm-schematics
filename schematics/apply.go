@@ -23,9 +23,11 @@ type ConflictPolicy struct {
 }
 
 type ApplyOptions struct {
-	defaultConflictMode string
-	produceDiff         bool
-	onConflictPolicies  []ConflictPolicy
+	defaultConflictMode     string
+	produceDiff             bool
+	onConflictPolicies      []ConflictPolicy
+	deleteOtherFiles        bool
+	deleteOtherFilesPattern *regexp.Regexp
 }
 
 type ApplyOption func(*ApplyOptions)
@@ -53,6 +55,15 @@ func WithApplyConflictPolicy(m string, include []string) ApplyOption {
 	}
 }
 
+func WithDeleteOtherFiles(pattern string) ApplyOption {
+	return func(aopts *ApplyOptions) {
+		if pattern != "" {
+			aopts.deleteOtherFilesPattern = regexp.MustCompile(pattern)
+		}
+		aopts.deleteOtherFiles = true
+	}
+}
+
 func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 
 	const semLogContext = "schematics::apply"
@@ -62,8 +73,25 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 		o(&cfg)
 	}
 
+	var otherFiles map[string]struct{}
+	var err error
+	if cfg.deleteOtherFiles {
+		otherFiles, err = findFilesInTargetFolder(targetFolder, cfg.deleteOtherFilesPattern)
+		if err != nil {
+			log.Error().Err(err).Msg(semLogContext)
+			return err
+		}
+	}
+
 	var mergedFiles []OpNode
 	for _, f := range files {
+		if len(otherFiles) > 0 {
+			fullPath := filepath.Join(targetFolder, f.path)
+			if _, ok := otherFiles[fullPath]; ok {
+				delete(otherFiles, fullPath)
+			}
+		}
+
 		targetPath := filepath.Join(targetFolder, f.path)
 		if util.FileExists(targetPath) {
 			b, err := RecoverRegionsOfFile(targetPath, f.content)
@@ -155,7 +183,42 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 		}
 	}
 
+	if len(otherFiles) > 0 {
+		log.Info().Int("num-other-files", len(otherFiles)).Msg(semLogContext)
+		for n, _ := range otherFiles {
+			log.Info().Str("file-name", n).Msg(semLogContext + " ...deleting")
+			err = os.Remove(n)
+			if err != nil {
+				log.Error().Err(err).Str("file-name", n).Msg(semLogContext)
+			}
+		}
+	}
+
 	return nil
+}
+
+func findFilesInTargetFolder(targetFolder string, rexp *regexp.Regexp) (map[string]struct{}, error) {
+	const semLogContext = "schematics::find-targets"
+	files, err := util.FindFiles(targetFolder, util.WithFindOptionNavigateSubDirs(), util.WithFindFileType(util.FileTypeFile))
+	if err != nil {
+		log.Error().Err(err).Msg(semLogContext)
+		return nil, err
+	}
+
+	var m map[string]struct{}
+	if len(files) > 0 {
+		m = make(map[string]struct{})
+	}
+
+	for _, f := range files {
+		// consider only the files that are matched by the regexp or all the files if the expression is nil
+		if rexp == nil || (rexp != nil && rexp.Match([]byte(f))) {
+			log.Trace().Str("fn", f).Msg(semLogContext)
+			m[f] = struct{}{}
+		}
+	}
+
+	return m, nil
 }
 
 func computeConflictMode(cfg *ApplyOptions, targetPath string) (string, error) {

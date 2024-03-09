@@ -87,6 +87,6 @@ func TestApply(t *testing.T) {
 	err = schematics.Apply(
 		"/Users/marioa.imperato/tmp/test-sch",
 		src,
-		schematics.WithApplyDefaultConflictMode(schematics.ConflictModeBackup))
+		schematics.WithApplyDefaultConflictMode(schematics.ConflictModeBackup), schematics.WithDeleteOtherFiles("(.yml)|(.yaml)$"))
 	require.NoError(t, err)
 }

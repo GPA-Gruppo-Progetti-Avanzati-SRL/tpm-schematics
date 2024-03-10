@@ -184,13 +184,15 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 	}
 
 	if len(otherFiles) > 0 {
-		log.Info().Int("num-other-files", len(otherFiles)).Msg(semLogContext)
+		log.Info().Int("num-other-files", len(otherFiles)).Msg(semLogContext + " files not in current generation")
 		for n, _ := range otherFiles {
-			log.Info().Str("file-name", n).Msg(semLogContext + " ...rename as deleted")
-			err = os.Rename(n, n+".del")
-			if err != nil {
-				log.Error().Err(err).Str("file-name", n).Msg(semLogContext)
-			}
+			log.Info().Str("file-name", n).Msg(semLogContext + " file not in current generation")
+			/*
+				err = os.Rename(n, n+".del")
+				if err != nil {
+					log.Error().Err(err).Str("file-name", n).Msg(semLogContext)
+				}
+			*/
 		}
 	}
 

@@ -81,6 +81,8 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 			log.Error().Err(err).Msg(semLogContext)
 			return err
 		}
+
+		log.Info().Int("num-files", len(otherFiles)).Msg(semLogContext + " files under target folder")
 	}
 
 	var mergedFiles []OpNode
@@ -88,6 +90,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 		if len(otherFiles) > 0 {
 			fullPath := filepath.Join(targetFolder, f.path)
 			if _, ok := otherFiles[fullPath]; ok {
+				log.Trace().Str("file-name", fullPath).Msg(semLogContext + " clear from map")
 				delete(otherFiles, fullPath)
 			}
 		}

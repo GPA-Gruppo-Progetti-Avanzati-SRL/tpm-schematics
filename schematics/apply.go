@@ -97,6 +97,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 
 		targetPath := filepath.Join(targetFolder, f.path)
 		if util.FileExists(targetPath) {
+			log.Info().Str("path", targetPath).Msg(semLogContext + " - recovering regions")
 			b, err := RecoverRegionsOfFile(targetPath, f.content)
 			if err != nil {
 				log.Error().Err(err).Msg(semLogContext)

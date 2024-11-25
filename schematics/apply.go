@@ -1,7 +1,7 @@
 package schematics
 
 import (
-	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util"
+	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/fileutil"
 	"github.com/rs/zerolog/log"
 	godiffpatch "github.com/sourcegraph/go-diff-patch"
 	"io/fs"
@@ -96,7 +96,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 		}
 
 		targetPath := filepath.Join(targetFolder, f.path)
-		if util.FileExists(targetPath) {
+		if fileutil.FileExists(targetPath) {
 			log.Info().Str("path", targetPath).Msg(semLogContext + " - recovering regions")
 			b, err := RecoverRegionsOfFile(targetPath, f.content)
 			if err != nil {
@@ -172,7 +172,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 	for _, mf := range mergedFiles {
 		log.Info().Str("file-name", mf.path).Msg(semLogContext)
 		dir := filepath.Dir(mf.path)
-		if !util.FileExists(dir) {
+		if !fileutil.FileExists(dir) {
 			err := os.MkdirAll(dir, fs.ModePerm)
 			if err != nil {
 				log.Error().Err(err).Msg(semLogContext)
@@ -205,7 +205,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 
 func findFilesInTargetFolder(targetFolder string, rexp *regexp.Regexp) (map[string]struct{}, error) {
 	const semLogContext = "schematics::find-targets"
-	files, err := util.FindFiles(targetFolder, util.WithFindOptionNavigateSubDirs(), util.WithFindFileType(util.FileTypeFile))
+	files, err := fileutil.FindFiles(targetFolder, fileutil.WithFindOptionNavigateSubDirs(), fileutil.WithFindFileType(fileutil.FileTypeFile))
 	if err != nil {
 		log.Error().Err(err).Msg(semLogContext)
 		return nil, err
@@ -230,7 +230,7 @@ func findFilesInTargetFolder(targetFolder string, rexp *regexp.Regexp) (map[stri
 func computeConflictMode(cfg *ApplyOptions, targetPath string) (string, error) {
 	const semLogContext = "schematics::compute-conflict-mode"
 
-	if util.FileExists(targetPath) {
+	if fileutil.FileExists(targetPath) {
 		baseName := filepath.Base(targetPath)
 		for _, p := range cfg.onConflictPolicies {
 			for _, r := range p.includeList {
@@ -249,7 +249,7 @@ func computeConflictMode(cfg *ApplyOptions, targetPath string) (string, error) {
 func createPatchFile(targetPath string, content []byte) (OpNode, error) {
 	const semLogContext = "schematics::create-patch-file"
 
-	if util.FileExists(targetPath) {
+	if fileutil.FileExists(targetPath) {
 		current, err := os.ReadFile(targetPath)
 		if err != nil {
 			log.Error().Err(err).Msg(semLogContext)
@@ -271,7 +271,7 @@ func createPatchFile(targetPath string, content []byte) (OpNode, error) {
 func createBackupFile(targetPath string) (OpNode, error) {
 	const semLogContext = "schematics::create-bak-file"
 
-	if util.FileExists(targetPath) {
+	if fileutil.FileExists(targetPath) {
 		current, err := os.ReadFile(targetPath)
 		if err != nil {
 			log.Error().Err(err).Msg(semLogContext)

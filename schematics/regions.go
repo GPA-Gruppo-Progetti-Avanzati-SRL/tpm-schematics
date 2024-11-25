@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util"
+	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/fileutil"
 	"github.com/rs/zerolog/log"
 	"io"
 	"os"
@@ -14,7 +14,7 @@ import (
 
 func RecoverRegionsOfFile(fromFile string, toContent []byte) ([]byte, error) {
 
-	if !util.FileExists(fromFile) {
+	if !fileutil.FileExists(fromFile) {
 		return toContent, nil
 	}
 

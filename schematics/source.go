@@ -2,7 +2,7 @@ package schematics
 
 import (
 	"embed"
-	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util"
+	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/fileutil"
 	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/templateutil"
 	"github.com/rs/zerolog/log"
 	"path/filepath"
@@ -203,11 +203,11 @@ func processSourceTemplates(ctx *SourceContext, funcMap template.FuncMap, nodes 
 
 func readSourceTemplates(cfg *SourceTemplateOptions, templates embed.FS, rootFolder string) ([]SourceTemplate, error) {
 
-	entries, err := util.FindEmbeddedFiles(
+	entries, err := fileutil.FindEmbeddedFiles(
 		templates, rootFolder,
-		util.WithFindOptionNavigateSubDirs(), util.WithFindOptionExcludeRootFolderInNames(), util.WithFindOptionPreloadContent(),
-		util.WithFindOptionFilesIncludeList(cfg.filesIncludeList), util.WithFindOptionFilesIgnoreList(cfg.filesIgnoreList),
-		util.WithFindOptionFoldersIncludeList(cfg.foldersIncludeList), util.WithFindOptionFoldersIgnoreList(cfg.foldersIgnoreList))
+		fileutil.WithFindOptionNavigateSubDirs(), fileutil.WithFindOptionExcludeRootFolderInNames(), fileutil.WithFindOptionPreloadContent(),
+		fileutil.WithFindOptionFilesIncludeList(cfg.filesIncludeList), fileutil.WithFindOptionFilesIgnoreList(cfg.filesIgnoreList),
+		fileutil.WithFindOptionFoldersIncludeList(cfg.foldersIncludeList), fileutil.WithFindOptionFoldersIgnoreList(cfg.foldersIgnoreList))
 
 	if err != nil {
 		return nil, err

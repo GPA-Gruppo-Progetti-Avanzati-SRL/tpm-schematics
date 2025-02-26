@@ -205,9 +205,14 @@ func readSourceTemplates(cfg *SourceTemplateOptions, templates embed.FS, rootFol
 
 	entries, err := fileutil.FindEmbeddedFiles(
 		templates, rootFolder,
-		fileutil.WithFindOptionNavigateSubDirs(), fileutil.WithFindOptionExcludeRootFolderInNames(), fileutil.WithFindOptionPreloadContent(),
-		fileutil.WithFindOptionFilesIncludeList(cfg.filesIncludeList), fileutil.WithFindOptionFilesIgnoreList(cfg.filesIgnoreList),
-		fileutil.WithFindOptionFoldersIncludeList(cfg.foldersIncludeList), fileutil.WithFindOptionFoldersIgnoreList(cfg.foldersIgnoreList))
+		fileutil.WithFindOptionNavigateSubDirs(),
+		// fileutil.WithFindOptionExcludeRootFolderInNames(),
+		fileutil.WithFindOptionTrimRootFolderFromNames(),
+		fileutil.WithFindOptionPreloadContent(),
+		fileutil.WithFindOptionFilesIncludeList(cfg.filesIncludeList),
+		fileutil.WithFindOptionFilesIgnoreList(cfg.filesIgnoreList),
+		fileutil.WithFindOptionFoldersIncludeList(cfg.foldersIncludeList),
+		fileutil.WithFindOptionFoldersIgnoreList(cfg.foldersIgnoreList))
 
 	if err != nil {
 		return nil, err

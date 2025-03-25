@@ -12,6 +12,16 @@ import (
 	"strings"
 )
 
+const outOfRegion = "out-of-region"
+const inRegion = "in-region"
+const inRegionSkipContent = "in-region-skip-content"
+
+type RegionInfo struct {
+	Name    string
+	Content string
+	Size    int
+}
+
 func RecoverRegionsOfFile(fromFile string, toContent []byte) ([]byte, error) {
 
 	if !fileutil.FileExists(fromFile) {
@@ -41,17 +51,73 @@ func RecoverRegions(fromContent []byte, toContent []byte) ([]byte, error) {
 
 	scanner := bufio.NewScanner(bytes.NewReader(toContent))
 
+	status := outOfRegion
+	var currentRegionName string
+
+	lineno := 0
 	var sb strings.Builder
 	for scanner.Scan() {
 		l := scanner.Text()
-		sb.WriteString(l)
-		sb.WriteString("\n")
-		regType, regionName, ok := getRegionDemarcation(l)
-		if ok && regType == "start-region" {
-			if data, ok := regs[regionName]; ok {
-				sb.WriteString(data)
+		lineno++
+
+		demarcationType, regionName, isDemarcationLine := getRegionDemarcation(l)
+		switch status {
+		case outOfRegion:
+			if isDemarcationLine {
+				if demarcationType == "start-region" {
+					sb.WriteString(l)
+					sb.WriteString("\n")
+					currentRegionName = regionName
+					if regionInfo, ok := regs[regionName]; ok {
+						if regionInfo.Size != 0 {
+							sb.WriteString(regionInfo.Content)
+							status = inRegionSkipContent
+						} else {
+							status = inRegion
+						}
+					} else {
+						status = inRegion
+					}
+				} else {
+					err = errors.New("wrong region demarcation")
+					log.Error().Err(err).Str("name", regionName).Str("status", status).Str("type", demarcationType).Int("line", lineno).Msg(semLogContext)
+					return nil, err
+				}
+			} else {
+				sb.WriteString(l)
+				sb.WriteString("\n")
+			}
+		case inRegion:
+			if isDemarcationLine {
+				if demarcationType == "end-region" && regionName == currentRegionName {
+					sb.WriteString(l)
+					sb.WriteString("\n")
+					status = outOfRegion
+					currentRegionName = ""
+				} else {
+					err = errors.New("wrong region demarcation")
+					log.Error().Err(err).Str("name", regionName).Str("status", status).Str("type", demarcationType).Int("line", lineno).Msg(semLogContext)
+					return nil, err
+				}
+			} else {
+				sb.WriteString(l)
+				sb.WriteString("\n")
+			}
+		case inRegionSkipContent:
+			if isDemarcationLine {
+				if demarcationType == "end-region" && regionName == currentRegionName {
+					sb.WriteString(l)
+					sb.WriteString("\n")
+					status = outOfRegion
+					currentRegionName = ""
+				} else {
+					err = errors.New("wrong region demarcation")
+					log.Error().Err(err).Str("name", regionName).Str("status", status).Str("type", demarcationType).Int("line", lineno).Msg(semLogContext)
+					return nil, err
+				}
 			}
 		}
+
 	}
 
 	if err := scanner.Err(); err != nil && err != io.EOF {
@@ -62,17 +128,15 @@ func RecoverRegions(fromContent []byte, toContent []byte) ([]byte, error) {
 	return []byte(sb.String()), nil
 }
 
-func ReadRegionsFromBuffer(p []byte) (map[string]string, error) {
+func ReadRegionsFromBuffer(p []byte) (map[string]RegionInfo, error) {
 	const semLogContext = "schematics::read-regions-from-buffer"
 	scanner := bufio.NewScanner(bytes.NewReader(p))
 
-	var m map[string]string
+	var m map[string]RegionInfo
 
-	const OutOfRegion = 0
-	const InRegion = 1
-	s := 0
+	status := outOfRegion
 	var regionName string
-	var currentRegionSize int
+	var currentRegionNumLines int
 	var sb strings.Builder
 	var lineno int
 	var err error
@@ -81,39 +145,45 @@ func ReadRegionsFromBuffer(p []byte) (map[string]string, error) {
 
 		lineno++
 		demarcationType, aName, ok := getRegionDemarcation(l)
-		switch s {
-		case OutOfRegion:
+		switch status {
+		case outOfRegion:
 			if ok {
 				if demarcationType == "start-region" {
 					regionName = aName
-					s = InRegion
+					status = inRegion
 				} else {
 					err = errors.New("wrong region demarcation")
 					log.Error().Err(err).Str("name", aName).Str("type", demarcationType).Int("line", lineno).Msg(semLogContext)
 					return nil, err
 				}
 			}
-		case InRegion:
+		case inRegion:
 			if ok {
-				if demarcationType == "end-region" {
-					if currentRegionSize > 0 {
-						if m == nil {
-							m = make(map[string]string)
-						}
-						m[regionName] = sb.String()
-						sb.Reset()
-						currentRegionSize = 0
+				if demarcationType == "end-region" && aName == regionName {
+					if m == nil {
+						m = make(map[string]RegionInfo)
 					}
+
+					rinfo := RegionInfo{
+						Name:    regionName,
+						Size:    currentRegionNumLines,
+						Content: sb.String(),
+					}
+
+					m[regionName] = rinfo
+					sb.Reset()
+					currentRegionNumLines = 0
+
 				} else {
 					err = errors.New("wrong region demarcation")
 					log.Error().Err(err).Str("name", aName).Str("type", demarcationType).Int("line", lineno).Msg(semLogContext)
 					return nil, err
 				}
-				s = OutOfRegion
+				status = outOfRegion
 			} else {
 				sb.WriteString(l)
 				sb.WriteString("\n")
-				currentRegionSize++
+				currentRegionNumLines++
 			}
 		default:
 		}

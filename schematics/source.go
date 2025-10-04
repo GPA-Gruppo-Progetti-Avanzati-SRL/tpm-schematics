@@ -2,13 +2,15 @@ package schematics
 
 import (
 	"embed"
-	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/fileutil"
-	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/templateutil"
-	"github.com/rs/zerolog/log"
+	"errors"
 	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
+
+	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/fileutil"
+	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/templateutil"
+	"github.com/rs/zerolog/log"
 )
 
 type SourceTemplateOptions struct {
@@ -73,10 +75,40 @@ func WithSourceFindOptionFilesIgnoreList(p []string) SourceTemplateOption {
 	}
 }
 
+type SourceTemplateComponent struct {
+	Name    string
+	Content []byte
+}
+
 type SourceTemplate struct {
-	path string
+	path           string
+	isRealTemplate bool
 	// content   []byte
-	templates []templateutil.Info
+	templates []SourceTemplateComponent
+}
+
+var binaryExtensions = map[string]struct{}{
+	".png": struct{}{},
+	".jpg": struct{}{},
+	".ico": struct{}{},
+}
+
+func (st *SourceTemplate) IsBinary() bool {
+	ext := filepath.Ext(st.path)
+	if _, ok := binaryExtensions[strings.ToLower(ext)]; ok {
+		return true
+	}
+
+	return false
+}
+
+func (st *SourceTemplate) TemplateInfo() []templateutil.Info {
+	var out []templateutil.Info
+	for _, t := range st.templates {
+		out = append(out, templateutil.Info{Name: t.Name, Content: string(t.Content)})
+	}
+
+	return out
 }
 
 func (st *SourceTemplate) IsGoLanguage() bool {
@@ -127,15 +159,20 @@ func (s *SourceTemplate) processTemplates(genCtx *SourceContext, funcMap templat
 	if !s.IsGoLanguage() {
 		formatCode = false
 	}
-	var parsedTemplate *template.Template
-	if parsedTemplate, err = templateutil.Parse(s.templates, funcMap); err != nil {
-		log.Error().Err(err).Msg(semLogContext)
-		return out, err
-	} else {
-		if out.content, err = templateutil.Process(parsedTemplate, genCtx, formatCode); err != nil {
+
+	if s.isRealTemplate {
+		var parsedTemplate *template.Template
+		if parsedTemplate, err = templateutil.Parse(s.TemplateInfo(), funcMap); err != nil {
 			log.Error().Err(err).Msg(semLogContext)
 			return out, err
+		} else {
+			if out.content, err = templateutil.Process(parsedTemplate, genCtx, formatCode); err != nil {
+				log.Error().Err(err).Msg(semLogContext)
+				return out, err
+			}
 		}
+	} else {
+		out.content = s.templates[0].Content
 	}
 
 	return out, nil
@@ -202,6 +239,7 @@ func processSourceTemplates(ctx *SourceContext, funcMap template.FuncMap, nodes 
 }
 
 func readSourceTemplates(cfg *SourceTemplateOptions, templates embed.FS, rootFolder string) ([]SourceTemplate, error) {
+	const semLogContext = "schematics::read-source-templates"
 
 	entries, err := fileutil.FindEmbeddedFiles(
 		templates, rootFolder,
@@ -232,6 +270,7 @@ func readSourceTemplates(cfg *SourceTemplateOptions, templates embed.FS, rootFol
 		fn := e.Info.Name()
 		isMain := true
 		var baseFn string
+		isTemplate := true
 		if strings.HasSuffix(fn, ".tmpl") {
 			fn = strings.TrimSuffix(fn, ".tmpl")
 			baseFn = fn
@@ -245,6 +284,7 @@ func readSourceTemplates(cfg *SourceTemplateOptions, templates embed.FS, rootFol
 				isMain = false
 			} else {
 				baseFn = fn
+				isTemplate = false
 			}
 		}
 
@@ -254,21 +294,29 @@ func readSourceTemplates(cfg *SourceTemplateOptions, templates embed.FS, rootFol
 		}
 
 		if ndx, ok := treeNodeMap[fulln]; ok {
+			if !treeNodes[ndx].isRealTemplate || !isTemplate {
+				// For some reason I got something that matches a non template file.
+				// or the other way around....
+				err = errors.New("mis-matched template files")
+				log.Error().Err(err).Str("offending-name", fulln).Msg(semLogContext)
+				return nil, err
+			}
 			treeNodes[ndx].path = fulln
 			if isMain {
 				// the main array has to be set to as the first template.
 				// append as the first element
-				treeNodes[ndx].templates = append([]templateutil.Info{{Name: fn, Content: string(e.Content)}}, treeNodes[ndx].templates...)
+				treeNodes[ndx].templates = append([]SourceTemplateComponent{{Name: fn, Content: e.Content}}, treeNodes[ndx].templates...)
 			} else {
-				treeNodes[ndx].templates = append(treeNodes[ndx].templates, templateutil.Info{Name: fn, Content: string(e.Content)})
+				treeNodes[ndx].templates = append(treeNodes[ndx].templates, SourceTemplateComponent{Name: fn, Content: e.Content})
 			}
 		} else {
 			treeNodes = append(treeNodes, SourceTemplate{
-				path: fulln,
-				templates: []templateutil.Info{
+				isRealTemplate: isTemplate,
+				path:           fulln,
+				templates: []SourceTemplateComponent{
 					{
 						Name:    fn,
-						Content: string(e.Content),
+						Content: e.Content,
 					},
 				},
 			})

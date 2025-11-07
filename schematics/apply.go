@@ -1,13 +1,14 @@
 package schematics
 
 import (
-	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/fileutil"
-	"github.com/rs/zerolog/log"
-	godiffpatch "github.com/sourcegraph/go-diff-patch"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/fileutil"
+	"github.com/rs/zerolog/log"
+	godiffpatch "github.com/sourcegraph/go-diff-patch"
 )
 
 const (
@@ -88,22 +89,22 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 	var mergedFiles []OpNode
 	for _, f := range files {
 		if len(otherFiles) > 0 {
-			fullPath := filepath.Join(targetFolder, f.path)
+			fullPath := filepath.Join(targetFolder, f.Path)
 			if _, ok := otherFiles[fullPath]; ok {
 				log.Trace().Str("file-name", fullPath).Msg(semLogContext + " clear from map")
 				delete(otherFiles, fullPath)
 			}
 		}
 
-		targetPath := filepath.Join(targetFolder, f.path)
+		targetPath := filepath.Join(targetFolder, f.Path)
 		if fileutil.FileExists(targetPath) {
 			log.Info().Str("path", targetPath).Msg(semLogContext + " - recovering regions")
-			b, err := RecoverRegionsOfFile(targetPath, f.content)
+			b, err := RecoverRegionsOfFile(targetPath, f.Content)
 			if err != nil {
 				log.Error().Err(err).Msg(semLogContext)
 				return err
 			}
-			f.content = b
+			f.Content = b
 		}
 
 		cm, err := computeConflictMode(&cfg, targetPath)
@@ -114,11 +115,11 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 
 		switch cm {
 		case ConflictModeOverwrite:
-			mergedFiles = append(mergedFiles, OpNode{path: targetPath, content: f.content})
+			mergedFiles = append(mergedFiles, OpNode{Path: targetPath, Content: f.Content})
 		case ConflictModeKeep:
 			// The file is not created. The previous is kept.
 		case ConflictModeBackup:
-			pf, err := createPatchFile(targetPath, f.content)
+			pf, err := createPatchFile(targetPath, f.Content)
 			if err != nil {
 				log.Error().Err(err).Msg(semLogContext)
 				return err
@@ -127,7 +128,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 			// if files are not different... nothing happens.
 			if !pf.IsZero() {
 				// Since they are different it does make sense to produce the new file.
-				mergedFiles = append(mergedFiles, OpNode{path: targetPath, content: f.content})
+				mergedFiles = append(mergedFiles, OpNode{Path: targetPath, Content: f.Content})
 
 				// files are different. check if the patch file has to be produced.
 				if cfg.produceDiff {
@@ -144,7 +145,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 				mergedFiles = append(mergedFiles, bck)
 			}
 		case ConflictModeNew:
-			pf, err := createPatchFile(targetPath, f.content)
+			pf, err := createPatchFile(targetPath, f.Content)
 			if err != nil {
 				log.Error().Err(err).Msg(semLogContext)
 				return err
@@ -159,7 +160,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 					log.Info().Msg(semLogContext + " actual patch creation not enabled")
 				}
 
-				newf, err := createNewFile(targetPath, f.content)
+				newf, err := createNewFile(targetPath, f.Content)
 				if err != nil {
 					log.Error().Err(err).Msg(semLogContext)
 					return err
@@ -170,8 +171,8 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 	}
 
 	for _, mf := range mergedFiles {
-		log.Info().Str("file-name", mf.path).Msg(semLogContext)
-		dir := filepath.Dir(mf.path)
+		log.Info().Str("file-name", mf.Path).Msg(semLogContext)
+		dir := filepath.Dir(mf.Path)
 		if !fileutil.FileExists(dir) {
 			err := os.MkdirAll(dir, fs.ModePerm)
 			if err != nil {
@@ -180,7 +181,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 			}
 		}
 
-		err := os.WriteFile(mf.path, mf.content, fs.ModePerm)
+		err := os.WriteFile(mf.Path, mf.Content, fs.ModePerm)
 		if err != nil {
 			log.Error().Err(err).Msg(semLogContext)
 			return err
@@ -261,7 +262,7 @@ func createPatchFile(targetPath string, content []byte) (OpNode, error) {
 			patchFile := filepath.Join(filepath.Dir(targetPath), filepath.Base(targetPath)+".patch")
 			log.Info().Str("patch-file", patchFile).Msg(semLogContext)
 			// _ = os.WriteFile(patchFile, []byte(patch), fs.ModePerm)
-			return OpNode{path: patchFile, content: []byte(patch)}, nil
+			return OpNode{Path: patchFile, Content: []byte(patch)}, nil
 		}
 	}
 
@@ -280,7 +281,7 @@ func createBackupFile(targetPath string) (OpNode, error) {
 
 		bakFile := filepath.Join(filepath.Dir(targetPath), filepath.Base(targetPath)+".bak")
 		log.Info().Str("bak-file", bakFile).Msg(semLogContext)
-		return OpNode{path: bakFile, content: []byte(current)}, nil
+		return OpNode{Path: bakFile, Content: []byte(current)}, nil
 	}
 
 	return OpNode{}, nil
@@ -290,5 +291,5 @@ func createNewFile(targetPath string, content []byte) (OpNode, error) {
 	const semLogContext = "schematics::create-new-file"
 	newFile := filepath.Join(filepath.Dir(targetPath), filepath.Base(targetPath)+".new")
 	log.Info().Str("new-file", newFile).Msg(semLogContext)
-	return OpNode{path: newFile, content: []byte(content)}, nil
+	return OpNode{Path: newFile, Content: []byte(content)}, nil
 }

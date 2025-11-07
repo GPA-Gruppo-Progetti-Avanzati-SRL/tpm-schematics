@@ -129,18 +129,18 @@ func (st *SourceTemplate) TemplateNames() []string {
 }
 
 type OpNode struct {
-	path    string
-	content []byte
+	Path    string
+	Content []byte
 }
 
 func (s *OpNode) IsZero() bool {
-	return s.path == "" && s.content == nil
+	return s.Path == "" && s.Content == nil
 }
 
 func NewOpNode(p string, data []byte) OpNode {
 	return OpNode{
-		path:    p,
-		content: data,
+		Path:    p,
+		Content: data,
 	}
 }
 
@@ -150,7 +150,7 @@ func (s *SourceTemplate) processTemplates(genCtx *SourceContext, funcMap templat
 	var err error
 	var out OpNode
 
-	out.path, err = ResolveSchematicsName(s.path, genCtx.Metadata)
+	out.Path, err = ResolveSchematicsName(s.path, genCtx.Metadata)
 	if err != nil {
 		log.Error().Err(err).Msg(semLogContext)
 		return out, err
@@ -166,13 +166,13 @@ func (s *SourceTemplate) processTemplates(genCtx *SourceContext, funcMap templat
 			log.Error().Err(err).Msg(semLogContext)
 			return out, err
 		} else {
-			if out.content, err = templateutil.Process(parsedTemplate, genCtx, formatCode); err != nil {
+			if out.Content, err = templateutil.Process(parsedTemplate, genCtx, formatCode); err != nil {
 				log.Error().Err(err).Msg(semLogContext)
 				return out, err
 			}
 		}
 	} else {
-		out.content = s.templates[0].Content
+		out.Content = s.templates[0].Content
 	}
 
 	return out, nil

@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/fileutil"
-	"github.com/rs/zerolog/log"
 	"io"
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util"
+	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/fileutil"
+	"github.com/rs/zerolog/log"
 )
 
 const outOfRegion = "out-of-region"
@@ -130,7 +132,7 @@ func RecoverRegions(fromContent []byte, toContent []byte) ([]byte, error) {
 
 func ReadRegionsFromBuffer(p []byte) (map[string]RegionInfo, error) {
 	const semLogContext = "schematics::read-regions-from-buffer"
-	scanner := bufio.NewScanner(bytes.NewReader(p))
+	scanner := bufio.NewReader(bytes.NewReader(p))
 
 	var m map[string]RegionInfo
 
@@ -140,9 +142,8 @@ func ReadRegionsFromBuffer(p []byte) (map[string]RegionInfo, error) {
 	var sb strings.Builder
 	var lineno int
 	var err error
-	for scanner.Scan() {
-		l := scanner.Text()
-
+	l, err := util.BufoReaderReadLineAsString(scanner, lineno+1, 0)
+	for err == nil {
 		lineno++
 		demarcationType, aName, ok := getRegionDemarcation(l)
 		switch status {
@@ -190,7 +191,7 @@ func ReadRegionsFromBuffer(p []byte) (map[string]RegionInfo, error) {
 
 	}
 
-	if err := scanner.Err(); err != nil && err != io.EOF {
+	if err != io.EOF {
 		log.Error().Err(err).Int("line", lineno).Msg(semLogContext)
 		return nil, err
 	}

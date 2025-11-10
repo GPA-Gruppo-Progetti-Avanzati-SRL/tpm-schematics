@@ -4,6 +4,8 @@ github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common v0.1.87 h1:2VWnlgiHHpEplu
 github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common v0.1.87/go.mod h1:Q456LEsf8ywWb9GU1sIesWakRSIWe6MisfM2Q5lDJlw=
 github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common v0.1.88 h1:PfyQZ05Kl0qqRTrKSW7b2j/rKoB/vpx77K0lusMREq4=
 github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common v0.1.88/go.mod h1:Q456LEsf8ywWb9GU1sIesWakRSIWe6MisfM2Q5lDJlw=
+github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common v0.1.89 h1:7knp6eMP6ZV7AMEFZIuNp5zAokVNs7BZHSkjsRaBJbY=
+github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common v0.1.89/go.mod h1:Q456LEsf8ywWb9GU1sIesWakRSIWe6MisfM2Q5lDJlw=
 github.com/PaesslerAG/gval v1.2.2 h1:Y7iBzhgE09IGTt5QgGQ2IdaYYYOU134YGHBThD+wm9E=
 github.com/PaesslerAG/gval v1.2.2/go.mod h1:XRFLwvmkTEdYziLdaCeCa5ImcGVrfQbeNUbVR+C6xac=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=

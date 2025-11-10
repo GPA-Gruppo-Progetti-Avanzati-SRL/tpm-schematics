@@ -51,15 +51,15 @@ func RecoverRegions(fromContent []byte, toContent []byte) ([]byte, error) {
 		return toContent, nil
 	}
 
-	scanner := bufio.NewScanner(bytes.NewReader(toContent))
+	scanner := bufio.NewReader(bytes.NewReader(toContent))
 
 	status := outOfRegion
 	var currentRegionName string
 
 	lineno := 0
+	l, err := util.BufoReaderReadLineAsString(scanner, lineno+1, 0)
 	var sb strings.Builder
-	for scanner.Scan() {
-		l := scanner.Text()
+	for err == nil {
 		lineno++
 
 		demarcationType, regionName, isDemarcationLine := getRegionDemarcation(l)
@@ -120,9 +120,10 @@ func RecoverRegions(fromContent []byte, toContent []byte) ([]byte, error) {
 			}
 		}
 
+		l, err = util.BufoReaderReadLineAsString(scanner, lineno+1, 0)
 	}
 
-	if err := scanner.Err(); err != nil && err != io.EOF {
+	if err != io.EOF {
 		log.Error().Err(err).Msg(semLogContext)
 		return nil, err
 	}
@@ -189,6 +190,7 @@ func ReadRegionsFromBuffer(p []byte) (map[string]RegionInfo, error) {
 		default:
 		}
 
+		l, err = util.BufoReaderReadLineAsString(scanner, lineno+1, 0)
 	}
 
 	if err != io.EOF {

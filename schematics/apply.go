@@ -29,6 +29,7 @@ type ApplyOptions struct {
 	onConflictPolicies      []ConflictPolicy
 	deleteOtherFiles        bool
 	deleteOtherFilesPattern *regexp.Regexp
+	flat                    bool
 }
 
 type ApplyOption func(*ApplyOptions)
@@ -42,6 +43,12 @@ func WithApplyProduceDiff() ApplyOption {
 func WithApplyDefaultConflictMode(m string) ApplyOption {
 	return func(aopts *ApplyOptions) {
 		aopts.defaultConflictMode = m
+	}
+}
+
+func WithFlat(b bool) ApplyOption {
+	return func(aopts *ApplyOptions) {
+		aopts.flat = b
 	}
 }
 
@@ -97,6 +104,10 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 		}
 
 		targetPath := filepath.Join(targetFolder, f.Path)
+		if cfg.flat {
+			targetPath = filepath.Join(targetFolder, filepath.Base(f.Path))
+		}
+
 		if fileutil.FileExists(targetPath) {
 			log.Info().Str("path", targetPath).Msg(semLogContext + " - recovering regions")
 			b, err := RecoverRegionsOfFile(targetPath, f.Content)

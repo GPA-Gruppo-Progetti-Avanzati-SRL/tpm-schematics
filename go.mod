@@ -5,7 +5,7 @@ go 1.23.2
 toolchain go1.23.3
 
 require (
-	github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common v0.1.89
+	github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common v0.1.90-RCE
 	github.com/rs/zerolog v1.34.0
 	github.com/sourcegraph/go-diff-patch v0.0.0-20240223163233-798fd1e94a8e
 	github.com/stretchr/testify v1.11.1

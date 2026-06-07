@@ -2,7 +2,6 @@ module github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-schematics
 
 go 1.26.3
 
-
 require (
 	github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common v0.1.95
 	github.com/rs/zerolog v1.35.1

@@ -5,12 +5,10 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 
 	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util"
-	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/fileutil"
 	"github.com/rs/zerolog/log"
 )
 
@@ -24,19 +22,21 @@ type RegionInfo struct {
 	Size    int
 }
 
+/*
 func RecoverRegionsOfFile(fromFile string, toContent []byte) ([]byte, error) {
 
-	if !fileutil.FileExists(fromFile) {
-		return toContent, nil
-	}
+		if !fileutil.FileExists(fromFile) {
+			return toContent, nil
+		}
 
-	b, err := os.ReadFile(fromFile)
-	if err != nil {
-		return nil, err
-	}
+		b, err := os.ReadFile(fromFile)
+		if err != nil {
+			return nil, err
+		}
 
-	return RecoverRegions(b, toContent)
-}
+		return RecoverRegions(b, toContent)
+	}
+*/
 
 func RecoverRegions(fromContent []byte, toContent []byte) ([]byte, error) {
 	const semLogContext = "schematics::recover-regions"

@@ -1,12 +1,11 @@
 module github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-schematics
 
-go 1.23.2
+go 1.26.3
 
-toolchain go1.23.3
 
 require (
-	github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common v0.1.90-RCE
-	github.com/rs/zerolog v1.34.0
+	github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common v0.1.95
+	github.com/rs/zerolog v1.35.1
 	github.com/sourcegraph/go-diff-patch v0.0.0-20240223163233-798fd1e94a8e
 	github.com/stretchr/testify v1.11.1
 )
@@ -16,8 +15,8 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/lucasjones/reggen v0.0.0-20200904144131-37ba4fa293bb // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.19 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect

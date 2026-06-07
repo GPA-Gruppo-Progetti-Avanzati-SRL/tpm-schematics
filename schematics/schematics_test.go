@@ -2,11 +2,12 @@ package schematics_test
 
 import (
 	"embed"
+	"testing"
+	"text/template"
+
 	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util"
 	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-schematics/schematics"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"text/template"
 )
 
 //go:embed example-templates/*
@@ -85,8 +86,8 @@ func TestApply(t *testing.T) {
 	require.NoError(t, err)
 
 	err = schematics.Apply(
-		"/Users/marioa.imperato/tmp/test-sch",
 		src,
+		schematics.WithFilesystemWriter("/Users/marioa.imperato/tmp/test-sch"),
 		schematics.WithApplyDefaultConflictMode(schematics.ConflictModeBackup), schematics.WithDeleteOtherFiles("(.yml)|(.yaml)$"))
 	require.NoError(t, err)
 }

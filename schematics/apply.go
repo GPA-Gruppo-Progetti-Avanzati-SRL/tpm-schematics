@@ -1,12 +1,9 @@
 package schematics
 
 import (
-	"io/fs"
-	"os"
 	"path/filepath"
 	"regexp"
 
-	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/fileutil"
 	"github.com/rs/zerolog/log"
 	godiffpatch "github.com/sourcegraph/go-diff-patch"
 )
@@ -17,6 +14,15 @@ const (
 	ConflictModeBackup    = "backup"
 	ConflictModeNew       = "new"
 )
+
+type ApplyWriter interface {
+	WriteFile(fn string, p []byte) error
+	ListFiles(rexp *regexp.Regexp) (map[string]struct{}, error)
+	TargetFolder() string
+	FileExists(fn string) bool
+	RecoverRegionsOfFile(fromFile string, toContent []byte) ([]byte, error)
+	ReadFile(fn string) ([]byte, error)
+}
 
 type ConflictPolicy struct {
 	mode        string
@@ -30,6 +36,7 @@ type ApplyOptions struct {
 	deleteOtherFiles        bool
 	deleteOtherFilesPattern *regexp.Regexp
 	flat                    bool
+	writer                  ApplyWriter
 }
 
 type ApplyOption func(*ApplyOptions)
@@ -72,7 +79,19 @@ func WithDeleteOtherFiles(pattern string) ApplyOption {
 	}
 }
 
-func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
+func WithFilesystemWriter(targetFolder string) ApplyOption {
+	return func(aopts *ApplyOptions) {
+		aopts.writer = &FileApplyWriter{targetFolder: targetFolder}
+	}
+}
+
+func WithWriter(wrt ApplyWriter) ApplyOption {
+	return func(aopts *ApplyOptions) {
+		aopts.writer = wrt
+	}
+}
+
+func Apply(files []OpNode, opts ...ApplyOption) error {
 
 	const semLogContext = "schematics::apply"
 
@@ -84,7 +103,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 	var otherFiles map[string]struct{}
 	var err error
 	if cfg.deleteOtherFiles {
-		otherFiles, err = findFilesInTargetFolder(targetFolder, cfg.deleteOtherFilesPattern)
+		otherFiles, err = cfg.writer.ListFiles(cfg.deleteOtherFilesPattern)
 		if err != nil {
 			log.Error().Err(err).Msg(semLogContext)
 			return err
@@ -93,6 +112,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 		log.Info().Int("num-files", len(otherFiles)).Msg(semLogContext + " files under target folder")
 	}
 
+	targetFolder := cfg.writer.TargetFolder()
 	var mergedFiles []OpNode
 	for _, f := range files {
 		if len(otherFiles) > 0 {
@@ -108,9 +128,9 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 			targetPath = filepath.Join(targetFolder, filepath.Base(f.Path))
 		}
 
-		if fileutil.FileExists(targetPath) {
+		if cfg.writer.FileExists(targetPath) {
 			log.Info().Str("path", targetPath).Msg(semLogContext + " - recovering regions")
-			b, err := RecoverRegionsOfFile(targetPath, f.Content)
+			b, err := cfg.writer.RecoverRegionsOfFile(targetPath, f.Content)
 			if err != nil {
 				log.Error().Err(err).Msg(semLogContext)
 				return err
@@ -130,7 +150,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 		case ConflictModeKeep:
 			// The file is not created. The previous is kept.
 		case ConflictModeBackup:
-			pf, err := createPatchFile(targetPath, f.Content)
+			pf, err := createPatchFile(&cfg, targetPath, f.Content)
 			if err != nil {
 				log.Error().Err(err).Msg(semLogContext)
 				return err
@@ -148,7 +168,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 					log.Info().Msg(semLogContext + " actual patch creation not enabled")
 				}
 
-				bck, err := createBackupFile(targetPath)
+				bck, err := createBackupFile(&cfg, targetPath)
 				if err != nil {
 					log.Error().Err(err).Msg(semLogContext)
 					return err
@@ -156,7 +176,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 				mergedFiles = append(mergedFiles, bck)
 			}
 		case ConflictModeNew:
-			pf, err := createPatchFile(targetPath, f.Content)
+			pf, err := createPatchFile(&cfg, targetPath, f.Content)
 			if err != nil {
 				log.Error().Err(err).Msg(semLogContext)
 				return err
@@ -183,16 +203,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 
 	for _, mf := range mergedFiles {
 		log.Info().Str("file-name", mf.Path).Msg(semLogContext)
-		dir := filepath.Dir(mf.Path)
-		if !fileutil.FileExists(dir) {
-			err := os.MkdirAll(dir, fs.ModePerm)
-			if err != nil {
-				log.Error().Err(err).Msg(semLogContext)
-				return err
-			}
-		}
-
-		err := os.WriteFile(mf.Path, mf.Content, fs.ModePerm)
+		err := cfg.writer.WriteFile(mf.Path, mf.Content)
 		if err != nil {
 			log.Error().Err(err).Msg(semLogContext)
 			return err
@@ -215,6 +226,7 @@ func Apply(targetFolder string, files []OpNode, opts ...ApplyOption) error {
 	return nil
 }
 
+/*
 func findFilesInTargetFolder(targetFolder string, rexp *regexp.Regexp) (map[string]struct{}, error) {
 	const semLogContext = "schematics::find-targets"
 	files, err := fileutil.FindFiles(targetFolder, fileutil.WithFindOptionNavigateSubDirs(), fileutil.WithFindFileType(fileutil.FileTypeFile))
@@ -238,11 +250,12 @@ func findFilesInTargetFolder(targetFolder string, rexp *regexp.Regexp) (map[stri
 
 	return m, nil
 }
+*/
 
 func computeConflictMode(cfg *ApplyOptions, targetPath string) (string, error) {
 	const semLogContext = "schematics::compute-conflict-mode"
 
-	if fileutil.FileExists(targetPath) {
+	if cfg.writer.FileExists(targetPath) {
 		baseName := filepath.Base(targetPath)
 		for _, p := range cfg.onConflictPolicies {
 			for _, r := range p.includeList {
@@ -258,11 +271,11 @@ func computeConflictMode(cfg *ApplyOptions, targetPath string) (string, error) {
 	return ConflictModeOverwrite, nil
 }
 
-func createPatchFile(targetPath string, content []byte) (OpNode, error) {
+func createPatchFile(cfg *ApplyOptions, targetPath string, content []byte) (OpNode, error) {
 	const semLogContext = "schematics::create-patch-file"
 
-	if fileutil.FileExists(targetPath) {
-		current, err := os.ReadFile(targetPath)
+	if cfg.writer.FileExists(targetPath) {
+		current, err := cfg.writer.ReadFile(targetPath)
 		if err != nil {
 			log.Error().Err(err).Msg(semLogContext)
 			return OpNode{}, err
@@ -280,11 +293,11 @@ func createPatchFile(targetPath string, content []byte) (OpNode, error) {
 	return OpNode{}, nil
 }
 
-func createBackupFile(targetPath string) (OpNode, error) {
+func createBackupFile(cfg *ApplyOptions, targetPath string) (OpNode, error) {
 	const semLogContext = "schematics::create-bak-file"
 
-	if fileutil.FileExists(targetPath) {
-		current, err := os.ReadFile(targetPath)
+	if cfg.writer.FileExists(targetPath) {
+		current, err := cfg.writer.ReadFile(targetPath)
 		if err != nil {
 			log.Error().Err(err).Msg(semLogContext)
 			return OpNode{}, err

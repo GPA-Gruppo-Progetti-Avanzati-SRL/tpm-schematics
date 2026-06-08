@@ -10,19 +10,19 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type FileApplyWriter struct {
+type ApplyFileStore struct {
 	targetFolder string
 }
 
-func (fw *FileApplyWriter) TargetFolder() string {
+func (fw *ApplyFileStore) TargetFolder() string {
 	return fw.targetFolder
 }
 
-func (fw *FileApplyWriter) FileExists(fn string) bool {
+func (fw *ApplyFileStore) FileExists(fn string) bool {
 	return fileutil.FileExists(fn)
 }
 
-func (fw *FileApplyWriter) WriteFile(fn string, p []byte) error {
+func (fw *ApplyFileStore) WriteFile(fn string, p []byte) error {
 
 	dir := filepath.Dir(fn)
 	if !fileutil.FileExists(dir) {
@@ -35,8 +35,8 @@ func (fw *FileApplyWriter) WriteFile(fn string, p []byte) error {
 	return os.WriteFile(fn, p, fs.ModePerm)
 }
 
-func (fw *FileApplyWriter) ListFiles(rexp *regexp.Regexp) (map[string]struct{}, error) {
-	const semLogContext = "file-apply-writer::list-files"
+func (fw *ApplyFileStore) ListFilenames(rexp *regexp.Regexp) (map[string]struct{}, error) {
+	const semLogContext = "apply-file-store::list-filenames"
 	files, err := fileutil.FindFiles(fw.targetFolder, fileutil.WithFindOptionNavigateSubDirs(), fileutil.WithFindFileType(fileutil.FileTypeFile))
 	if err != nil {
 		log.Error().Err(err).Msg(semLogContext)
@@ -59,7 +59,7 @@ func (fw *FileApplyWriter) ListFiles(rexp *regexp.Regexp) (map[string]struct{}, 
 	return m, nil
 }
 
-func (fw *FileApplyWriter) RecoverRegionsOfFile(fromFile string, toContent []byte) ([]byte, error) {
+func (fw *ApplyFileStore) RecoverRegionsOfFile(fromFile string, toContent []byte) ([]byte, error) {
 	if !fileutil.FileExists(fromFile) {
 		return toContent, nil
 	}
@@ -72,6 +72,6 @@ func (fw *FileApplyWriter) RecoverRegionsOfFile(fromFile string, toContent []byt
 	return RecoverRegions(b, toContent)
 }
 
-func (fw *FileApplyWriter) ReadFile(fn string) ([]byte, error) {
+func (fw *ApplyFileStore) ReadFile(fn string) ([]byte, error) {
 	return os.ReadFile(fn)
 }

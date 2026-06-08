@@ -15,9 +15,9 @@ const (
 	ConflictModeNew       = "new"
 )
 
-type ApplyWriter interface {
+type ApplyStore interface {
 	WriteFile(fn string, p []byte) error
-	ListFiles(rexp *regexp.Regexp) (map[string]struct{}, error)
+	ListFilenames(rexp *regexp.Regexp) (map[string]struct{}, error)
 	TargetFolder() string
 	FileExists(fn string) bool
 	RecoverRegionsOfFile(fromFile string, toContent []byte) ([]byte, error)
@@ -36,7 +36,7 @@ type ApplyOptions struct {
 	deleteOtherFiles        bool
 	deleteOtherFilesPattern *regexp.Regexp
 	flat                    bool
-	writer                  ApplyWriter
+	writer                  ApplyStore
 }
 
 type ApplyOption func(*ApplyOptions)
@@ -79,13 +79,13 @@ func WithDeleteOtherFiles(pattern string) ApplyOption {
 	}
 }
 
-func WithFilesystemWriter(targetFolder string) ApplyOption {
+func WithFilesystemStore(targetFolder string) ApplyOption {
 	return func(aopts *ApplyOptions) {
-		aopts.writer = &FileApplyWriter{targetFolder: targetFolder}
+		aopts.writer = &ApplyMemoryStore{targetFolder: targetFolder}
 	}
 }
 
-func WithWriter(wrt ApplyWriter) ApplyOption {
+func WithStore(wrt ApplyStore) ApplyOption {
 	return func(aopts *ApplyOptions) {
 		aopts.writer = wrt
 	}
@@ -103,7 +103,7 @@ func Apply(files []OpNode, opts ...ApplyOption) error {
 	var otherFiles map[string]struct{}
 	var err error
 	if cfg.deleteOtherFiles {
-		otherFiles, err = cfg.writer.ListFiles(cfg.deleteOtherFilesPattern)
+		otherFiles, err = cfg.writer.ListFilenames(cfg.deleteOtherFilesPattern)
 		if err != nil {
 			log.Error().Err(err).Msg(semLogContext)
 			return err

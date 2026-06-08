@@ -12,6 +12,10 @@ type ApplyMemoryStore struct {
 	m            map[string][]byte
 }
 
+func NewApplyMemoryStore(targetFolder string) *ApplyMemoryStore {
+	return &ApplyMemoryStore{targetFolder: targetFolder}
+}
+
 func (fw *ApplyMemoryStore) Files() map[string][]byte {
 	return fw.m
 }

@@ -81,7 +81,7 @@ func WithDeleteOtherFiles(pattern string) ApplyOption {
 
 func WithFilesystemStore(targetFolder string) ApplyOption {
 	return func(aopts *ApplyOptions) {
-		aopts.writer = &ApplyMemoryStore{targetFolder: targetFolder}
+		aopts.writer = &ApplyFileStore{targetFolder: targetFolder}
 	}
 }
 

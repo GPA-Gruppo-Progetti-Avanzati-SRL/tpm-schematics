@@ -1,10 +1,10 @@
 package schematics
 
 import (
-	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-common/util/fileutil"
 	"github.com/rs/zerolog/log"
@@ -26,13 +26,17 @@ func (fw *ApplyFileStore) WriteFile(fn string, p []byte) error {
 
 	dir := filepath.Dir(fn)
 	if !fileutil.FileExists(dir) {
-		err := os.MkdirAll(dir, fs.ModePerm)
+		err := os.MkdirAll(dir, 0755)
 		if err != nil {
 			return err
 		}
 	}
 
-	return os.WriteFile(fn, p, fs.ModePerm)
+	perm := os.FileMode(0644)
+	if strings.HasSuffix(fn, ".sh") {
+		perm = 0755
+	}
+	return os.WriteFile(fn, p, perm)
 }
 
 func (fw *ApplyFileStore) ListFilenames(rexp *regexp.Regexp) (map[string]struct{}, error) {

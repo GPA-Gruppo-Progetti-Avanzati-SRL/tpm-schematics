@@ -21,3 +21,9 @@
 go.work
 
 .DS_Store
+
+*.iml
+.idea/
+misc.xml
+deploymentTargetDropDown.xml
+render.experimental.xml

@@ -2,9 +2,10 @@ package schematics_test
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/GPA-Gruppo-Progetti-Avanzati-SRL/tpm-schematics/schematics"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 var newContent = []byte(`
